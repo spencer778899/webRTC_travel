@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import start from "../utils/start";
 
 const STREAM_CONSTRAINTS = {
@@ -13,8 +13,9 @@ const OFFER_OPTIONS = {
 };
 
 const DataChannel = () => {
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
+  const datachannelRef = useRef(null);
+  const submitBoxRef = useRef(null);
+  const receiveBoxRef = useRef(null);
 
   useEffect(() => {
     let localPeer, remotePeer;
@@ -26,10 +27,7 @@ const DataChannel = () => {
       };
       peer.onicecandidate = async (e) => {
         try {
-          // by signalling
-          console.log("test e.candidate", e.candidate);
           await remotePeer.addIceCandidate(e.candidate);
-          //
           console.log("local Peer onIceCandidate", peer);
         } catch {
           console.log("local Peer onIceCandidate fail");
@@ -39,21 +37,16 @@ const DataChannel = () => {
     };
 
     const initRemotePeer = () => {
-      // Notion
       const peer = new RTCPeerConnection();
       peer.oniceconnectionstatechange = (e) => {
         console.log("remote Peer ICE state change:", e);
       };
       peer.onicecandidate = async (e) => {
-        // by signalling
-        await localPeer.addIceCandidate(e.candidate);
-        //
-        console.log("remote Peer onIceCandidate", peer);
-      };
-      peer.ontrack = (e) => {
-        if (remoteVideoRef.current.srcObject !== e.streams[0]) {
-          remoteVideoRef.current.srcObject = e.streams[0];
-          console.log("remotePeer.ontrack");
+        try {
+          await localPeer.addIceCandidate(e.candidate);
+          console.log("remote Peer onIceCandidate", peer);
+        } catch {
+          console.log("remote local Peer onIceCandidate fail");
         }
       };
       return peer;
@@ -61,63 +54,62 @@ const DataChannel = () => {
 
     const connect = async () => {
       try {
-        const localStream = await start(STREAM_CONSTRAINTS);
-        localVideoRef.current.srcObject = localStream;
-
         localPeer = initLocalPeer();
-        remotePeer = initRemotePeer();
+        //
+        const datachannel = localPeer.createDataChannel("my local channel", {
+          // id: 1,
+          // negotiated: true,
+          // protocol: "json",
+        });
+        datachannel.onopen = (e) => console.log("datachannel open", e);
+        datachannel.onclose = (e) => console.log("datachannel close", e);
+        datachannelRef.current = datachannel;
 
-        // 將 local stream 增加到 Peer 中，讓他可以隨著 Peer 傳輸
-        localStream
-          .getTracks()
-          .forEach((track) => localPeer.addTrack(track, localStream));
+        remotePeer = initRemotePeer();
+        remotePeer.ondatachannel = (e) => {
+          const receiveChannel = e.channel;
+          receiveChannel.onopen = (e) => console.log("receiveChannel open", e);
+          receiveChannel.onclose = (e) =>
+            console.log("receiveChannel close", e);
+
+          receiveChannel.onmessage = (e) => {
+            receiveBoxRef.current.value = e.data;
+          };
+        };
 
         const offer = await localPeer.createOffer(OFFER_OPTIONS);
         await localPeer.setLocalDescription(offer);
-
-        // by signalling
         await remotePeer.setRemoteDescription(offer);
-        //
 
         const answer = await remotePeer.createAnswer();
         await remotePeer.setLocalDescription(answer);
-
-        // by signalling
         await localPeer.setRemoteDescription(answer);
-        //
       } catch (error) {
         console.log("Peer to peer connect fail!!", error);
       }
     };
 
     connect();
+
     return () => {
-      // 清理操作，例如关闭连接
       localPeer.close();
       remotePeer.close();
     };
   }, []);
 
+  const handleSubmit = () => {
+    datachannelRef.current.send(submitBoxRef.current.value);
+  };
+
   return (
-    <>
-      <h1>RTCPeerConnection 範例</h1>
-      {/* 加入 tailwind */}
-      <h1>Local</h1>
-      <video
-        ref={localVideoRef}
-        style={{ width: "640px", height: "480px" }}
-        autoPlay
-      />
-      <h1>Remote</h1>
-      <video
-        ref={remoteVideoRef}
-        style={{ width: "640px", height: "480px" }}
-        autoPlay
-      />
-      <button>Start</button>
-      <button>Call</button>
-      <button>Hang Up</button>
-    </>
+    <div id="container">
+      <textarea ref={submitBoxRef}></textarea>
+      <textarea ref={receiveBoxRef}></textarea>
+
+      <div id="buttons">
+        <button onClick={handleSubmit}>Send</button>
+      </div>
+    </div>
   );
 };
 
