@@ -58,24 +58,23 @@ export default function Home() {
         canvasRef.current.width,
         canvasRef.current.height,
       );
-    setImgUrl(canvasRef.current.toDataURL("image/png"));
+    // setImgUrl(canvasRef.current.toDataURL("image/png"));
   };
 
   return (
     <>
       <video autoPlay ref={videoRef} controls />
       <button onClick={() => startCapture()}>開始錄製</button>
-      <button onClick={() => stopCapture()}>結束錄製</button>
       <br />
       <canvas ref={canvasRef} />
-      {imgUrl && (
+      {/* {imgUrl && (
         <Image
           src={imgUrl}
           width={canvasRef.current.width}
           height={canvasRef.current.height}
           alt="Picture of the author"
         />
-      )}
+      )} */}
       <button onClick={() => makeScreenshot()}>視訊截圖</button>
     </>
   );

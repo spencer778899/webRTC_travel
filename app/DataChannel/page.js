@@ -22,9 +22,6 @@ const DataChannel = () => {
 
     const initLocalPeer = () => {
       const peer = new RTCPeerConnection();
-      peer.oniceconnectionstatechange = (e) => {
-        console.log("local Peer ICE state change:", e);
-      };
       peer.onicecandidate = async (e) => {
         try {
           await remotePeer.addIceCandidate(e.candidate);
@@ -38,9 +35,6 @@ const DataChannel = () => {
 
     const initRemotePeer = () => {
       const peer = new RTCPeerConnection();
-      peer.oniceconnectionstatechange = (e) => {
-        console.log("remote Peer ICE state change:", e);
-      };
       peer.onicecandidate = async (e) => {
         try {
           await localPeer.addIceCandidate(e.candidate);
@@ -55,10 +49,7 @@ const DataChannel = () => {
     const connect = async () => {
       try {
         localPeer = initLocalPeer();
-        //
         const datachannel = localPeer.createDataChannel("my local channel", {
-          // id: 1,
-          // negotiated: true,
           // protocol: "json",
         });
         datachannel.onopen = (e) => console.log("datachannel open", e);

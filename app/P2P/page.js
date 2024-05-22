@@ -8,10 +8,6 @@ const STREAM_CONSTRAINTS = {
   video: true,
 };
 
-const OFFER_OPTIONS = {
-  offerToReceiveVideo: true,
-};
-
 const P2P = () => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -21,9 +17,6 @@ const P2P = () => {
 
     const initLocalPeer = () => {
       const peer = new RTCPeerConnection();
-      peer.oniceconnectionstatechange = (e) => {
-        console.log("local Peer ICE state change:", e);
-      };
       peer.onicecandidate = async (e) => {
         try {
           // by signalling
@@ -41,9 +34,6 @@ const P2P = () => {
     const initRemotePeer = () => {
       // Notion
       const peer = new RTCPeerConnection();
-      peer.oniceconnectionstatechange = (e) => {
-        console.log("remote Peer ICE state change:", e);
-      };
       peer.onicecandidate = async (e) => {
         // by signalling
         await localPeer.addIceCandidate(e.candidate);
@@ -72,7 +62,7 @@ const P2P = () => {
           .getTracks()
           .forEach((track) => localPeer.addTrack(track, localStream));
 
-        const offer = await localPeer.createOffer(OFFER_OPTIONS);
+        const offer = await localPeer.createOffer();
         await localPeer.setLocalDescription(offer);
 
         // by signalling
@@ -114,9 +104,6 @@ const P2P = () => {
         style={{ width: "640px", height: "480px" }}
         autoPlay
       />
-      <button>Start</button>
-      <button>Call</button>
-      <button>Hang Up</button>
     </>
   );
 };
